@@ -1,0 +1,269 @@
+databaseChangeLog:
+  - changeSet:
+      id: 1-create-roles
+      author: deprim
+      changes:
+        - createTable:
+            tableName: roles
+            columns:
+              - column:
+                  name: id
+                  type: serial
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: name
+                  type: varchar(50)
+                  constraints:
+                    nullable: false
+  - changeSet:
+      id: 2-create-groups
+      author: deprim
+      changes:
+        - createTable:
+            tableName: groups
+            columns:
+              - column:
+                  name: id
+                  type: serial
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: name
+                  type: varchar(50)
+                  constraints:
+                    nullable: false
+  - changeSet:
+      id: 3-create-instructors
+      author: deprim
+      changes:
+        - createTable:
+            tableName: instructors
+            columns:
+              - column:
+                  name: id
+                  type: serial
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: first_name
+                  type: varchar(255)
+              - column:
+                  name: last_name
+                  type: varchar(255)
+  - changeSet:
+      id: 4-create-rooms
+      author: deprim
+      changes:
+        - createTable:
+            tableName: rooms
+            columns:
+              - column:
+                  name: id
+                  type: serial
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: room_number
+                  type: varchar(20)
+              - column:
+                  name: capacity
+                  type: int
+              - column:
+                  name: type
+                  type: varchar(50)
+  - changeSet:
+      id: 5-create-users
+      author: deprim
+      changes:
+        - createTable:
+            tableName: users
+            columns:
+              - column:
+                  name: id
+                  type: serial
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: first_name
+                  type: varchar(100)
+              - column:
+                  name: last_name
+                  type: varchar(100)
+              - column:
+                  name: email
+                  type: varchar(150)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: role_id
+                  type: int
+              - column:
+                  name: created_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+              - column:
+                  name: username
+                  type: varchar(100)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: password
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: group_id
+                  type: int
+
+        - addForeignKeyConstraint:
+            baseTableName: users
+            baseColumnNames: role_id
+            referencedTableName: roles
+            referencedColumnNames: id
+            constraintName: fk_users_roles
+
+        - addForeignKeyConstraint:
+            baseTableName: users
+            baseColumnNames: group_id
+            referencedTableName: groups
+            referencedColumnNames: id
+            constraintName: fk_users_groups
+  - changeSet:
+      id: 6-create-courses
+      author: deprim
+      changes:
+        - createTable:
+            tableName: courses
+            columns:
+              - column:
+                  name: id
+                  type: serial
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: name
+                  type: varchar(200)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: code
+                  type: varchar(50)
+                  constraints:
+                    unique: true
+              - column:
+                  name: instructor_id
+                  type: int
+
+        - addForeignKeyConstraint:
+            baseTableName: courses
+            baseColumnNames: instructor_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_courses_users
+  - changeSet:
+      id: 7-create-schedules
+      author: deprim
+      changes:
+        - createTable:
+            tableName: schedules
+            columns:
+              - column:
+                  name: id
+                  type: serial
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: course_id
+                  type: int
+              - column:
+                  name: room_id
+                  type: int
+              - column:
+                  name: day_of_week
+                  type: varchar(20)
+              - column:
+                  name: start_time
+                  type: time
+              - column:
+                  name: end_time
+                  type: time
+              - column:
+                  name: date
+                  type: date
+              - column:
+                  name: group_id
+                  type: int
+
+        - addForeignKeyConstraint:
+            baseTableName: schedules
+            baseColumnNames: course_id
+            referencedTableName: courses
+            referencedColumnNames: id
+            constraintName: fk_schedules_courses
+
+        - addForeignKeyConstraint:
+            baseTableName: schedules
+            baseColumnNames: room_id
+            referencedTableName: rooms
+            referencedColumnNames: id
+            constraintName: fk_schedules_rooms
+
+        - addForeignKeyConstraint:
+            baseTableName: schedules
+            baseColumnNames: group_id
+            referencedTableName: groups
+            referencedColumnNames: id
+            constraintName: fk_schedules_groups
+  - changeSet:
+      id: 8-create-support-tickets
+      author: deprim
+      changes:
+        - createTable:
+            tableName: support_tickets
+            columns:
+              - column:
+                  name: id
+                  type: serial
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: user_id
+                  type: int
+              - column:
+                  name: title
+                  type: varchar(200)
+              - column:
+                  name: description
+                  type: text
+              - column:
+                  name: category
+                  type: varchar(50)
+              - column:
+                  name: status
+                  type: varchar(50)
+                  defaultValue: OPEN
+              - column:
+                  name: created_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+              - column:
+                  name: resolved_at
+                  type: timestamp
+
+        - addForeignKeyConstraint:
+            baseTableName: support_tickets
+            baseColumnNames: user_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_support_tickets_users

@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TSI Helpdesk</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 700px;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        h1 { margin-top: 0; font-size: 24px; color: #0056b3; text-align: center; }
+
+        /* Авторизация и переключение разделов */
+        .auth-tabs, .main-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px;
+            background: #f8f9fa;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+
+        .tab-btn.active {
+            background: #0056b3;
+            color: white;
+            border-color: #0056b3;
+        }
+
+        /* Формы */
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 14px; }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 12px;
+            background: #0056b3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        /* Верхняя панель управления */
+        .chat-topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        /* Область сообщений */
+        .messages-area {
+            height: 400px;
+            overflow-y: auto;
+            border: 1px solid #eee;
+            border-radius: 4px;
+            padding: 15px;
+            background: #fdfdfd;
+            margin-bottom: 15px;
+        }
+
+        .msg { margin-bottom: 15px; display: flex; flex-direction: column; }
+        .msg.user { align-items: flex-end; }
+        .msg.bot { align-items: flex-start; }
+
+        .msg-bubble {
+            padding: 10px 15px;
+            border-radius: 15px;
+            max-width: 85%;
+            word-wrap: break-word;
+            font-size: 15px;
+            line-height: 1.4;
+        }
+
+        .msg.user .msg-bubble { background: #0056b3; color: white; border-bottom-right-radius: 2px; }
+        .msg.bot .msg-bubble { background: #e9e9eb; color: #333; border-bottom-left-radius: 2px; }
+
+        /* Строка ввода (ИСПРАВЛЕНО) */
+        .input-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .chat-input {
+            flex: 1; /* Занимает всё место */
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .send-btn {
+            width: auto; /* Больше не 100% */
+            padding: 12px 25px;
+            background: #0056b3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        /* Таблица тикетов */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; }
+        th { background: #f8f9fa; color: #666; font-size: 13px; }
+        .status-badge {
+            background: #28a745;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            text-transform: uppercase;
+        }
+
+        .error-msg { color: #d9534f; font-size: 14px; margin-top: 10px; display: none; }
+        .error-msg.show { display: block; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="auth-screen">
+        <h1>TSI Helpdesk</h1>
+        <div class="auth-tabs">
+            <button class="tab-btn active" id="login-tab-btn" onclick="switchAuthTab('login')">Login</button>
+            <button class="tab-btn" id="reg-tab-btn" onclick="switchAuthTab('register')">Register</button>
+        </div>
+
+        <div id="panel-login" class="form-panel">
+            <div class="form-group"><label>Username</label><input type="text" id="login-username"></div>
+            <div class="form-group"><label>Password</label><input type="password" id="login-password"></div>
+            <button class="submit-btn" onclick="doLogin()">Sign In</button>
+        </div>
+
+        <div id="panel-register" class="form-panel" style="display:none;">
+            <div class="form-group"><label>Username</label><input type="text" id="reg-username"></div>
+            <div class="form-group"><label>Password</label><input type="password" id="reg-password"></div>
+            <button class="submit-btn" onclick="doRegister()">Create Account</button>
+        </div>
+        <div id="auth-error" class="error-msg"></div>
+    </div>
+
+    <div id="main-app" style="display:none;">
+        <div class="chat-topbar">
+            <strong>Welcome, <span id="username-badge"></span></strong>
+            <a href="#" onclick="doLogout()" style="color: #d9534f; text-decoration: none; font-size: 14px;">Logout</a>
+        </div>
+
+        <div class="main-tabs">
+            <button id="tab-chat-btn" class="tab-btn active" onclick="showSection('chat')">Chat</button>
+            <button id="tab-tickets-btn" class="tab-btn" onclick="showSection('tickets')">My Tickets</button>
+        </div>
+
+        <div id="chat-section">
+            <div class="messages-area" id="messages"></div>
+            <div class="input-row">
+                <input class="chat-input" type="text" id="chat-input" placeholder="Type your question..." onkeydown="if(event.key==='Enter')sendMsg()">
+                <button class="send-btn" id="send-btn" onclick="sendMsg()">Send</button>
+            </div>
+        </div>
+
+        <div id="tickets-section" style="display:none;">
+            <table id="tickets-table">
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Title</th>
+                    <th>Category</th>
+                    <th>Status</th>
+                </tr>
+                </thead>
+                <tbody id="tickets-body">
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    const BASE = 'http://localhost:8080';
+    let token = localStorage.getItem('token');
+    let username = localStorage.getItem('username');
+
+    if (token) showMainApp();
+
+    function switchAuthTab(tab) {
+        document.getElementById('panel-login').style.display = tab === 'login' ? 'block' : 'none';
+        document.getElementById('panel-register').style.display = tab === 'register' ? 'block' : 'none';
+        document.getElementById('login-tab-btn').classList.toggle('active', tab === 'login');
+        document.getElementById('reg-tab-btn').classList.toggle('active', tab === 'register');
+    }
+
+    function showSection(section) {
+        document.getElementById('chat-section').style.display = section === 'chat' ? 'block' : 'none';
+        document.getElementById('tickets-section').style.display = section === 'tickets' ? 'block' : 'none';
+        document.getElementById('tab-chat-btn').classList.toggle('active', section === 'chat');
+        document.getElementById('tab-tickets-btn').classList.toggle('active', section === 'tickets');
+        if (section === 'tickets') loadTickets();
+    }
+
+    async function doLogin() {
+        const u = document.getElementById('login-username').value;
+        const p = document.getElementById('login-password').value;
+        try {
+            const r = await fetch(`${BASE}/api/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: u, password: p })
+            });
+            if (!r.ok) throw new Error('Invalid credentials');
+            token = await r.text();
+            username = u;
+            localStorage.setItem('token', token);
+            localStorage.setItem('username', username);
+            showMainApp();
+        } catch(e) { alert(e.message); }
+    }
+
+    async function loadTickets() {
+        const tbody = document.getElementById('tickets-body');
+        tbody.innerHTML = '<tr><td colspan="4">Loading...</td></tr>';
+        try {
+            const r = await fetch(`${BASE}/api/ticket/get`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const tickets = await r.json();
+            tbody.innerHTML = tickets.map(t => `
+                <tr>
+                    <td>#${t.id}</td>
+                    <td>${t.title}</td>
+                    <td>${t.category}</td>
+                    <td><span class="status-badge">${t.status}</span></td>
+                </tr>
+            `).join('') || '<tr><td colspan="4">No tickets yet</td></tr>';
+        } catch(e) { tbody.innerHTML = '<tr><td colspan="4">Error loading data</td></tr>'; }
+    }
+
+    function showMainApp() {
+        document.getElementById('auth-screen').style.display = 'none';
+        document.getElementById('main-app').style.display = 'block';
+        document.getElementById('username-badge').textContent = username;
+        appendMsg('bot', `Hello ${username}! How can I help you today?`);
+    }
+
+    function doLogout() {
+        localStorage.clear();
+        location.reload();
+    }
+
+    function appendMsg(role, text, isTyping = false) {
+        const msgs = document.getElementById('messages');
+        const wrap = document.createElement('div');
+        wrap.className = `msg ${role}`;
+        const bubble = document.createElement('div');
+        bubble.className = 'msg-bubble';
+
+        if (isTyping) bubble.innerHTML = '<i>Thinking...</i>';
+        else if (role === 'bot') bubble.innerHTML = marked.parse(text);
+        else bubble.textContent = text;
+
+        wrap.appendChild(bubble);
+        msgs.appendChild(wrap);
+        msgs.scrollTop = msgs.scrollHeight;
+        return wrap;
+    }
+
+    async function sendMsg() {
+        const input = document.getElementById('chat-input');
+        const q = input.value.trim();
+        if (!q) return;
+        input.value = '';
+        appendMsg('user', q);
+        const typing = appendMsg('bot', '', true);
+        try {
+            const r = await fetch(`${BASE}/api/chat/ask`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ question: q })
+            });
+            const text = await r.text();
+            typing.remove();
+            appendMsg('bot', text);
+        } catch(e) {
+            typing.remove();
+            appendMsg('bot', 'Error: Connection lost.');
+        }
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+package com.example.helpdesktsi.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
+public class TicketResponse {
+
+    private Long id;
+
+
+
+
+}
