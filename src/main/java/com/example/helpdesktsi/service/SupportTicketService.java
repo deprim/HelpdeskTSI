@@ -39,5 +39,17 @@ public class SupportTicketService {
 
     }
 
+    public List<SupportTicket> getAllSupportTickets() {
+        return supportTicketRepository.findAll();
+    }
+
+    @Transactional
+    public void resolveTicket(Long id) {
+        SupportTicket ticket = supportTicketRepository.findById(id).orElseThrow();
+        ticket.setStatus("RESOLVED");
+        supportTicketRepository.save(ticket);
+    }
+
+
 
 }

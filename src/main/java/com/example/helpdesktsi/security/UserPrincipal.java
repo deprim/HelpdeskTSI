@@ -1,9 +1,13 @@
 package com.example.helpdesktsi.security;
 
+
+import com.example.helpdesktsi.enums.UserRole;
+import com.example.helpdesktsi.model.Role;
 import com.example.helpdesktsi.model.User;
 import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
@@ -19,7 +23,11 @@ public class UserPrincipal implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of();
+        if (user.getRole().getRoleName() == UserRole.ROLE_ADMIN) {
+            return List.of(new SimpleGrantedAuthority("ROLE_ADMIN"));
+        } else {
+            return List.of(new SimpleGrantedAuthority("ROLE_STUDENT"));
+        }
     }
 
     @Override

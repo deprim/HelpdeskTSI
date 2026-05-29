@@ -28,7 +28,6 @@
 
         h1 { margin-top: 0; font-size: 24px; color: #0056b3; text-align: center; }
 
-        /* Авторизация и переключение разделов */
         .auth-tabs, .main-tabs {
             display: flex;
             gap: 10px;
@@ -52,7 +51,6 @@
             border-color: #0056b3;
         }
 
-        /* Формы */
         .form-group { margin-bottom: 15px; }
         label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 14px; }
         input {
@@ -74,7 +72,6 @@
             cursor: pointer;
         }
 
-        /* Верхняя панель управления */
         .chat-topbar {
             display: flex;
             justify-content: space-between;
@@ -84,7 +81,6 @@
             margin-bottom: 15px;
         }
 
-        /* Область сообщений */
         .messages-area {
             height: 400px;
             overflow-y: auto;
@@ -111,32 +107,10 @@
         .msg.user .msg-bubble { background: #0056b3; color: white; border-bottom-right-radius: 2px; }
         .msg.bot .msg-bubble { background: #e9e9eb; color: #333; border-bottom-left-radius: 2px; }
 
-        /* Строка ввода (ИСПРАВЛЕНО) */
-        .input-row {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
+        .input-row { display: flex; gap: 10px; align-items: center; }
+        .chat-input { flex: 1; padding: 12px; border: 1px solid #ccc; border-radius: 4px; }
+        .send-btn { width: auto; padding: 12px 25px; background: #0056b3; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; }
 
-        .chat-input {
-            flex: 1; /* Занимает всё место */
-            padding: 12px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
-
-        .send-btn {
-            width: auto; /* Больше не 100% */
-            padding: 12px 25px;
-            background: #0056b3;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        /* Таблица тикетов */
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; }
         th { background: #f8f9fa; color: #666; font-size: 13px; }
@@ -148,6 +122,18 @@
             font-size: 11px;
             text-transform: uppercase;
         }
+
+        .resolve-btn {
+            background: #ffc107;
+            color: #333;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        .resolve-btn:hover { background: #e0a800; }
 
         .error-msg { color: #d9534f; font-size: 14px; margin-top: 10px; display: none; }
         .error-msg.show { display: block; }
@@ -170,6 +156,9 @@
         </div>
 
         <div id="panel-register" class="form-panel" style="display:none;">
+            <div class="form-group"><label>First Name</label><input type="text" id="reg-firstname"></div>
+            <div class="form-group"><label>Last Name</label><input type="text" id="reg-lastname"></div>
+            <div class="form-group"><label>Email</label><input type="email" id="reg-email"></div>
             <div class="form-group"><label>Username</label><input type="text" id="reg-username"></div>
             <div class="form-group"><label>Password</label><input type="password" id="reg-password"></div>
             <button class="submit-btn" onclick="doRegister()">Create Account</button>
@@ -186,6 +175,7 @@
         <div class="main-tabs">
             <button id="tab-chat-btn" class="tab-btn active" onclick="showSection('chat')">Chat</button>
             <button id="tab-tickets-btn" class="tab-btn" onclick="showSection('tickets')">My Tickets</button>
+            <button id="tab-tracker-btn" class="tab-btn" onclick="showSection('tracker')" style="display: none;">All Tickets</button>
         </div>
 
         <div id="chat-section">
@@ -210,6 +200,22 @@
                 </tbody>
             </table>
         </div>
+
+        <div id="tracker-section" style="display:none;">
+            <table>
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Title</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+                </thead>
+                <tbody id="tracker-body">
+                </tbody>
+            </table>
+        </div>
+
     </div>
 </div>
 
@@ -219,6 +225,20 @@
     let username = localStorage.getItem('username');
 
     if (token) showMainApp();
+
+    // НОВОЕ: Функция для парсинга и декодирования JWT токена на фронтенде
+    function parseJwt(token) {
+        try {
+            const base64Url = token.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+            return JSON.parse(jsonPayload);
+        } catch (e) {
+            return null;
+        }
+    }
 
     function switchAuthTab(tab) {
         document.getElementById('panel-login').style.display = tab === 'login' ? 'block' : 'none';
@@ -230,9 +250,14 @@
     function showSection(section) {
         document.getElementById('chat-section').style.display = section === 'chat' ? 'block' : 'none';
         document.getElementById('tickets-section').style.display = section === 'tickets' ? 'block' : 'none';
+        document.getElementById('tracker-section').style.display = section === 'tracker' ? 'block' : 'none';
+
         document.getElementById('tab-chat-btn').classList.toggle('active', section === 'chat');
         document.getElementById('tab-tickets-btn').classList.toggle('active', section === 'tickets');
+        document.getElementById('tab-tracker-btn').classList.toggle('active', section === 'tracker');
+
         if (section === 'tickets') loadTickets();
+        if (section === 'tracker') loadAllTickets();
     }
 
     async function doLogin() {
@@ -251,6 +276,49 @@
             localStorage.setItem('username', username);
             showMainApp();
         } catch(e) { alert(e.message); }
+    }
+
+    async function doRegister() {
+        const firstName = document.getElementById('reg-firstname').value.trim();
+        const lastName = document.getElementById('reg-lastname').value.trim();
+        const email = document.getElementById('reg-email').value.trim();
+        const u = document.getElementById('reg-username').value.trim();
+        const p = document.getElementById('reg-password').value.trim();
+
+        // Базовая валидация на фронте
+        if (!firstName || !lastName || !email || !u || !p) {
+            alert('All fields are required!');
+            return;
+        }
+
+        try {
+            const r = await fetch(`${BASE}/api/auth/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    firstName: firstName,
+                    lastName: lastName,
+                    email: email,
+                    username: u,
+                    password: p
+                })
+            });
+
+            if (!r.ok) throw new Error('Registration failed. Check your data.');
+
+            alert('Registration successful! Now you can sign in.');
+
+            // Переключаемся на логин и чистим поля
+            switchAuthTab('login');
+            document.getElementById('reg-firstname').value = '';
+            document.getElementById('reg-lastname').value = '';
+            document.getElementById('reg-email').value = '';
+            document.getElementById('reg-username').value = '';
+            document.getElementById('reg-password').value = '';
+
+        } catch(e) {
+            alert(e.message);
+        }
     }
 
     async function loadTickets() {
@@ -272,10 +340,69 @@
         } catch(e) { tbody.innerHTML = '<tr><td colspan="4">Error loading data</td></tr>'; }
     }
 
+    async function loadAllTickets() {
+        const tbody = document.getElementById('tracker-body');
+        tbody.innerHTML = '<tr><td colspan="4">Loading...</td></tr>';
+        try {
+            const r = await fetch(`${BASE}/api/ticket-tracker`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (!r.ok) throw new Error('Failed to fetch');
+            const tickets = await r.json();
+
+            tbody.innerHTML = tickets.map(t => `
+                <tr>
+                    <td>#${t.id}</td>
+                    <td>${t.title || 'No Title'}</td>
+                    <td><span class="status-badge" style="${t.status === 'RESOLVED' ? 'background: #6c757d;' : ''}">${t.status || 'ACTIVE'}</span></td>
+                    <td>
+                        ${t.status !== 'RESOLVED'
+                ? `<button class="resolve-btn" onclick="resolveTicket(${t.id})">Resolve</button>`
+                : '<span>-</span>'}
+                    </td>
+                </tr>
+            `).join('') || '<tr><td colspan="4">No tickets found</td></tr>';
+        } catch(e) { tbody.innerHTML = '<tr><td colspan="4">Error loading data</td></tr>'; }
+    }
+
+    async function resolveTicket(id) {
+        if (!confirm(`Are you sure you want to resolve ticket #${id}?`)) return;
+
+        try {
+            const r = await fetch(`${BASE}/api/ticket-tracker/resolve?id=${id}`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (r.ok) {
+                alert(`Ticket #${id} has been resolved!`);
+                loadAllTickets();
+            } else {
+                alert('Failed to resolve the ticket.');
+            }
+        } catch(e) {
+            alert('Error: Connection lost.');
+        }
+    }
+
+    // МОДИФИЦИРОВАНО: Проверка роли при инициализации интерфейса приложения
     function showMainApp() {
         document.getElementById('auth-screen').style.display = 'none';
         document.getElementById('main-app').style.display = 'block';
         document.getElementById('username-badge').textContent = username;
+
+        // Расшифровываем токен и смотрим, что внутри массива "roles"
+        const tokenData = parseJwt(token);
+        const userRoles = tokenData ? (tokenData.roles || tokenData.authorities || []) : [];
+
+        // Если у пользователя есть роль ROLE_ADMIN — показываем вкладку трекера
+        if (userRoles.includes('ROLE_ADMIN')) {
+            document.getElementById('tab-tracker-btn').style.display = 'inline-block';
+        } else {
+            document.getElementById('tab-tracker-btn').style.display = 'none';
+        }
+
         appendMsg('bot', `Hello ${username}! How can I help you today?`);
     }
 
